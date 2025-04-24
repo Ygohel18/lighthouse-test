@@ -1,0 +1,111 @@
+{
+    "info": {
+        "_postman_id": "YOUR_COLLECTION_ID_WILL_BE_GENERATED_ON_IMPORT",
+        "name": "Lighthouse Performance API",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "_exporter_id": "YOUR_EXPORTER_ID_WILL_BE_GENERATED_ON_EXPORT"
+    },
+    "item": [
+        {
+            "name": "Create New Task",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"url\": \"https://web.dev\"\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/tasks",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "tasks"
+                    ]
+                },
+                "description": "Submit a URL to create a new performance test task.\n\nExample body with custom configs:\n```json\n{\n  \"url\": \"https://example.com\",\n  \"configs\": [\n    { \"device\": \"mobile\", \"browser\": \"Chrome\", \"location\": \"us-east-1\" },\n    { \"device\": \"desktop\", \"browser\": \"Chrome\", \"location\": \"eu-west-2\" }\n  ]\n}\n```"
+            },
+            "response": [],
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "// Extract taskId from the response and set it as a collection variable",
+                            "var jsonData = pm.response.json();",
+                            "if (jsonData && jsonData.taskId) {",
+                            "    pm.collectionVariables.set(\"taskId\", jsonData.taskId);",
+                            "    console.log(\"Extracted taskId: \" + jsonData.taskId);",
+                            "} else {",
+                            "    console.log(\"taskId not found in response.\");",
+                            "}"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Get Task Status and Results",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/tasks/{{taskId}}",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "tasks",
+                        "{{taskId}}"
+                    ]
+                },
+                "description": "Retrieve the status and partial/final results for a specific task using its taskId.\n\nRequires the 'taskId' collection variable to be set (e.g., by running the 'Create New Task' request first)."
+            },
+            "response": []
+        },
+        {
+            "name": "List Recent Tasks",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/tasks",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "tasks"
+                    ]
+                },
+                "description": "Retrieve a list of recent task submissions."
+            },
+            "response": []
+        }
+    ],
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:3000",
+            "type": "string",
+            "description": "Base URL for the API. Change this based on how you are running the app:\n- Direct Host: http://localhost:3000\n- Docker (via Docker Nginx): http://localhost:8080\n- Docker (via Local Nginx path e.g., /lighthouse): http://localhost/lighthouse\n- Docker (via Local Nginx subdomain e.g., lighthouse.localhost): http://lighthouse.localhost"
+        },
+        {
+            "key": "taskId",
+            "value": "",
+            "type": "string",
+            "description": "Automatically populated with the taskId after creating a new task. Used by the 'Get Task Status and Results' request."
+        }
+    ]
+}

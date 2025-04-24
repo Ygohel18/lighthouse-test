@@ -1,0 +1,44 @@
+# Root-level Git Ignore
+
+# Docker volumes (managed by Docker, not part of the repo)
+# These are defined in docker-compose.yml
+mongo_data/
+redis_data/
+minio_data/
+screenshots_volume/ # If you were using a local volume mount
+
+# Node.js specific ignores (should also be in backend/ and frontend/ .gitignore)
+node_modules/
+dist/
+
+# Environment files (should be in backend/ and frontend/ .gitignore)
+.env
+.env.local
+
+# Next.js specific ignores (should also be in frontend/ .gitignore)
+.next/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Editor directories and files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Optional: Coverage reports
+coverage/
+
+# Optional: npm package lock v3 (if using npm@7+)
+# package-lock.json # Keep this if you want deterministic builds at the root level
+
+# Optional: Yarn lock file
+# yarn.lock
+
+# Optional: pnpm lock file
+# pnpm-lock.yaml
+
+# Optional: Docker build context ignores (redundant if using .gitignore for build context)
+# .dockerignore # If you had a separate .dockerignore file

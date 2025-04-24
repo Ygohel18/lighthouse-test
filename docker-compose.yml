@@ -1,0 +1,175 @@
+version: "3.8"
+
+services:
+  # --- Backend Services ---
+
+  backend-mongo:
+    image: mongo:latest
+    container_name: lighthouse_backend_mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - app_network
+
+  backend-redis:
+    image: redis:latest
+    container_name: lighthouse_backend_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - app_network
+
+  minio:
+    image: minio/minio
+    container_name: lighthouse_minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  createbuckets:
+    image: minio/mc
+    container_name: lighthouse_minio_createbuckets
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - app_network
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set myminio http://minio:9000 ${S3_ACCESS_KEY_ID} ${S3_SECRET_ACCESS_KEY};
+      /usr/bin/mc ls myminio/${S3_BUCKET_NAME} > /dev/null 2>&1 || /usr/bin/mc mb myminio/${S3_BUCKET_NAME};
+      /usr/bin/mc policy set public myminio/${S3_BUCKET_NAME};
+      exit 0;
+      "
+    environment:
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+
+  backend-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: lighthouse_backend_api
+    environment:
+      MONGO_URI: mongodb://backend-mongo:27017/lighthouse_db
+      REDIS_HOST: backend-redis
+      REDIS_PORT: 6379
+      PORT: 3000
+      S3_ENDPOINT: http://minio:9000
+      S3_REGION: ${S3_REGION}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+      S3_SIGNED_URL_EXPIRES_SECONDS: ${S3_SIGNED_URL_EXPIRES_SECONDS}
+      LIGHTHOUSE_NAVIGATION_TIMEOUT: ${LIGHTHOUSE_NAVIGATION_TIMEOUT}
+      LIGHTHOUSE_THROTTLING_METHOD: ${LIGHTHOUSE_THROTTLING_METHOD}
+    env_file:
+      - ./backend/.env # Load backend env vars
+    depends_on:
+      - backend-mongo
+      - backend-redis
+      - minio
+    networks:
+      - app_network
+    command: node dist/api/server.js
+
+  backend-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: lighthouse_backend_worker_1
+    environment:
+      MONGO_URI: mongodb://backend-mongo:27017/lighthouse_db
+      REDIS_HOST: backend-redis
+      REDIS_PORT: 6379
+      S3_ENDPOINT: http://minio:9000
+      S3_REGION: ${S3_REGION}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+      LIGHTHOUSE_NAVIGATION_TIMEOUT: ${LIGHTHOUSE_NAVIGATION_TIMEOUT}
+      LIGHTHOUSE_THROTTLING_METHOD: ${LIGHTHOUSE_THROTTLING_METHOD}
+    env_file:
+      - ./backend/.env # Load backend env vars
+    depends_on:
+      - backend-mongo
+      - backend-redis
+      - minio
+    networks:
+      - app_network
+    command: node dist/worker/taskWorker.js
+    restart: on-failure
+
+  # --- Frontend Services ---
+
+  frontend-app:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: lighthouse_frontend_app
+    environment:
+      # Pass the URL where the frontend app can reach the backend API
+      # This is the backend-nginx service name within the Docker network
+      NEXT_PUBLIC_API_BASE_URL: http://backend-nginx
+      # Note: Other NEXT_PUBLIC_ variables from frontend/.env.local are NOT automatically loaded.
+      # You would need to explicitly list them here if needed.
+    depends_on:
+      - backend-nginx # Frontend needs backend API to be accessible
+    networks:
+      - app_network
+    # The command is defined in the Dockerfile (npm start)
+
+  # --- Nginx Services (Using the single Nginx Dockerfile) ---
+
+  backend-nginx:
+    build:
+      context: ./nginx # Build from the single nginx directory
+      dockerfile: Dockerfile
+    container_name: lighthouse_backend_nginx
+    ports:
+      - "8080:80" # Publish backend API via this port on the host
+    depends_on:
+      - backend-api
+    networks:
+      - app_network
+
+  frontend-nginx:
+    build:
+      context: ./nginx # Build from the single nginx directory
+      dockerfile: Dockerfile
+    container_name: lighthouse_frontend_nginx
+    ports:
+      - "3000:80" # Publish frontend via this port on the host (standard frontend port)
+    depends_on:
+      - frontend-app # Nginx needs the frontend app server
+    networks:
+      - app_network
+
+# Define volumes for persistent data
+volumes:
+  mongo_data:
+  redis_data:
+  minio_data:
+
+# Define a custom network
+networks:
+  app_network:
+    driver: bridge

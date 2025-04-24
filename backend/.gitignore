@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment variables
+.env
+.env.local # Common for local overrides
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Editor directories and files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Optional: Coverage reports
+coverage/
+
+# Optional: npm package lock v3 (if using npm@7+)
+# package-lock.json # Keep this if you want deterministic builds
+
+# Optional: Yarn lock file
+yarn.lock
+
+# Optional: pnpm lock file
+pnpm-lock.yaml
+
+# Optional: Docker build context ignores (redundant if using .gitignore for build context)
+# .dockerignore # If you had a separate .dockerignore file
+
+# Application Data - Default location for screenshots and other data
+data/

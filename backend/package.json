@@ -1,0 +1,41 @@
+{
+    "name": "lighthouse-api",
+    "version": "1.0.0",
+    "description": "Automated Lighthouse testing platform",
+    "main": "dist/index.js",
+    "scripts": {
+        "build": "tsc",
+        "start:api": "node dist/api/server.js",
+        "start:worker": "node dist/worker/taskWorker.js",
+        "start:dev": "ts-node-dev --respawn src/index.ts",
+        "lint": "eslint src/**/*.ts",
+        "format": "prettier --write src/**/*.ts"
+    },
+    "dependencies": {
+        "@aws-sdk/client-s3": "^3.787.0",
+        "@aws-sdk/s3-request-presigner": "^3.787.0",
+        "bullmq": "^5.x",
+        "cors": "^2.8.5",
+        "dotenv": "^16.x",
+        "express": "^4.x",
+        "ioredis": "^5.x",
+        "lighthouse": "^12.5.1",
+        "mongoose": "^8.x",
+        "puppeteer": "^24.7.1",
+        "uuid": "^9.x",
+        "zod": "^3.x"
+    },
+    "devDependencies": {
+        "@types/cors": "^2.8.17",
+        "@types/express": "^4.x",
+        "@types/node": "^20.x",
+        "@types/puppeteer": "^5.4.7",
+        "@types/uuid": "^9.x",
+        "@typescript-eslint/eslint-plugin": "^7.x",
+        "@typescript-eslint/parser": "^7.x",
+        "eslint": "^8.x",
+        "prettier": "^3.x",
+        "ts-node-dev": "^2.x",
+        "typescript": "^5.x"
+    }
+}

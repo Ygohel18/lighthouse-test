@@ -1,0 +1,139 @@
+version: '3.8'
+
+services:
+  # MongoDB Service
+  mongo:
+    image: mongo:latest
+    container_name: lighthouse_mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - app_network
+
+  # Redis Service
+  redis:
+    image: redis:latest
+    container_name: lighthouse_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - app_network
+
+  # MinIO Service (for local S3-compatible storage)
+  minio:
+    image: minio/minio
+    container_name: lighthouse_minio
+    ports:
+      - "9000:9000" # MinIO API port
+      - "9001:9001" # MinIO Console port
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID} # Use S3 env vars for MinIO credentials
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data # Persistent storage for MinIO data
+    networks:
+      - app_network
+    healthcheck: # Basic health check to wait for MinIO to be ready
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # MinIO Client to create bucket (runs once)
+  createbuckets:
+    image: minio/mc
+    container_name: lighthouse_minio_createbuckets
+    depends_on:
+      minio:
+        condition: service_healthy # Wait for MinIO to be healthy
+    networks:
+      - app_network
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set myminio http://minio:9000 ${S3_ACCESS_KEY_ID} ${S3_SECRET_ACCESS_KEY};
+      /usr/bin/mc ls myminio/${S3_BUCKET_NAME} > /dev/null 2>&1 || /usr/bin/mc mb myminio/${S3_BUCKET_NAME};
+      /usr/bin/mc policy set public myminio/${S3_BUCKET_NAME}; # Optional: Set public policy if needed, though signed URLs are better
+      exit 0;
+      "
+    environment:
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID} # Pass env vars to the script
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+
+
+  # Node.js API Service
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lighthouse_api
+    environment:
+      MONGO_URI: mongodb://mongo:27017/lighthouse_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      PORT: 3000
+      # Pass S3 config to the API service
+      S3_ENDPOINT: http://minio:9000 # Point to the MinIO service name in Docker
+      S3_REGION: ${S3_REGION}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+      S3_SIGNED_URL_EXPIRES_SECONDS: ${S3_SIGNED_URL_EXPIRES_SECONDS}
+    env_file:
+      - .env # Load other variables
+    depends_on:
+      - mongo
+      - redis
+      - minio # API needs MinIO to generate signed URLs
+    networks:
+      - app_network
+    command: node dist/api/server.js
+
+  # Node.js Worker Service
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lighthouse_worker_1
+    environment:
+      MONGO_URI: mongodb://mongo:27017/lighthouse_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      # Pass S3 config to the Worker service
+      S3_ENDPOINT: http://minio:9000 # Point to the MinIO service name in Docker
+      S3_REGION: ${S3_REGION}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+      # Worker doesn't need S3_SIGNED_URL_EXPIRES_SECONDS
+    env_file:
+      - .env # Load other variables
+    depends_on:
+      - mongo
+      - redis
+      - minio # Worker needs MinIO to upload files
+    networks:
+      - app_network
+    command: node dist/worker/taskWorker.js
+    restart: on-failure
+    # Remove screenshot volumes
+    # volumes:
+    #   - screenshots_volume:/app/data/screenshots
+
+# Define volumes for persistent data
+volumes:
+  mongo_data:
+  redis_data:
+  minio_data: # Volume for MinIO data
+  # Remove screenshots_volume
+  # screenshots_volume:
+
+# Define a custom network
+networks:
+  app_network:
+    driver: bridge
