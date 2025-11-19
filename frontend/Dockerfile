@@ -13,7 +13,6 @@ RUN npm install
 COPY . .
 
 # Build the Next.js application
-# This generates the .next directory
 RUN npm run build
 
 # Stage 2: Runner
@@ -26,11 +25,15 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/next.config.ts ./next.config.ts
 
-# Set environment variables for the Next.js app
-# NEXT_PUBLIC_API_BASE_URL will be set in docker-compose.yml
-# EXPOSE the port the Next.js server runs on (default 3000)
+# Force Next.js to listen on all interfaces (0.0.0.0)
+ENV HOSTNAME=0.0.0.0
+ENV PORT=3000
+
+# Expose the port
 EXPOSE 3000
 
-# Command to start the Next.js production server
-CMD ["npm", "start"]
+# Start Next.js production server
+# Next.js 15+ uses HOSTNAME env var to bind to 0.0.0.0
+CMD ["npm", "run", "start"]

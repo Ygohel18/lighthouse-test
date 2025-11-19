@@ -1,90 +1,226 @@
-# Lighthouse Performance Testing Stack
+# Lighthouse Performance Testing Platform
 
-This repository contains the backend API and frontend dashboard for an automated web performance testing platform powered by Google Lighthouse, MongoDB, Redis, and S3-compatible storage.
+Automated web performance testing with Lighthouse, featuring a Next.js frontend and Node.js backend.
 
-The project is structured into two main subdirectories:
+## Quick Start
 
-- `backend/`: The Node.js/TypeScript API and worker services.
-- `frontend/`: The Next.js/Shadcn UI dashboard.
+### Option 1: Docker Compose (Manual)
 
-## Prerequisites
+```bash
+# Start everything
+docker-compose up -d --build
 
-- Node.js (v18+ recommended) and npm
-- Docker and Docker Compose (for Docker setup)
+# Stop everything
+docker-compose down
+```
 
-## Setup
+### Option 2: System Service (Ubuntu/AlmaLinux)
 
-1.  **Clone the repository:**
+```bash
+# Install as system service
+sudo bash install-service.sh
 
-    ```bash
-    git clone https://github.com/ygohel18/lighthouse-test
-    cd lighthouse-test
-    ```
+# Service will start automatically on boot
+```
 
-2.  **Backend Setup:**
-    Refer to the `backend/README.md` for detailed backend setup instructions, including installing dependencies, configuring the `.env` file (for MongoDB, Redis, S3 credentials, etc.), and building the TypeScript code.
+**Service Commands:**
+```bash
+sudo systemctl start lighthouse    # Start
+sudo systemctl stop lighthouse     # Stop
+sudo systemctl restart lighthouse  # Restart
+sudo systemctl status lighthouse   # Status
+sudo journalctl -u lighthouse -f   # View logs
+```
 
-    ```bash
-    cd backend
-    npm install
-    # Configure .env file
-    npm run build
-    cd .. # Return to root
-    ```
+**Uninstall:**
+```bash
+sudo bash uninstall-service.sh
+```
 
-3.  **Frontend Setup:**
-    Refer to the `frontend/README.md` for detailed frontend setup instructions, including installing dependencies, initializing Shadcn UI, adding components, and configuring the `.env.local` file (for the backend API URL when running frontend on host).
-    ```bash
-    cd frontend
-    npm install
-    npx shadcn@latest init # Follow prompts
-    npx shadcn@latest add button input label form table card badge accordion collapsible progress select dialog # Add necessary components
-    npm install @tanstack/react-query @tanstack/react-query-devtools date-fns recharts @tanstack/react-table @hookform/resolvers zod lucide-react # Install additional libs
-    # Configure .env.local file
-    cd .. # Return to root
-    ```
+### Access
+- **Frontend**: http://localhost
+- **Backend API**: http://localhost:8080
+- **MinIO Console**: http://localhost:9001 (minioadmin/minioadmin)
 
-## Running the Application
+## Usage
 
-You can run the entire stack using Docker Compose or run backend and frontend processes separately on your host machine.
+1. Open http://localhost
+2. Enter a URL to test
+3. Click "Run Test"
+4. View results when complete
 
-### Method 1: Running with Docker Compose (Recommended)
+## Development
 
-This method uses Docker containers for all services (MongoDB, Redis, MinIO, Backend API, Backend Worker, Backend Nginx, Frontend App, Frontend Nginx).
+### Run Frontend Locally
+```bash
+cd frontend
+npm install
+npm run dev
+# Access at http://localhost:3000
+```
 
-1.  **Ensure Docker is Running:** Make sure the Docker daemon is active.
-2.  **Configure Backend .env:** Ensure `backend/.env` is correctly configured with your S3/MinIO credentials. The DB/Redis/S3 endpoints will be overridden in `docker-compose.yml` to use service names.
-3.  **Start the Stack:** Open a terminal in the project root (`project-root/`) and run:
-    ```bash
-    docker-compose up --build -d
-    ```
-    - `--build`: Builds images (needed initially or after code/Dockerfile changes).
-    - `-d`: Runs containers in detached mode.
-4.  **Access:**
-    - Frontend Dashboard: `http://localhost:3000`
-    - Backend API (Direct): `http://localhost:8080`
-5.  **Stop:**
-    `bash
-    docker-compose down             # Stops and removes containers/networks
-    docker-compose down -v          # Stops and removes containers/networks/volumes (deletes data)
-    `
-    Refer to `backend/README.md` and `frontend/README.md` for viewing logs, scaling workers, etc.
+### Run Backend Locally
+```bash
+cd backend
+npm install
+npm run build
+npm run start:api
+# API at http://localhost:3000
+```
 
-### Method 2: Running Directly on the Host
+### View Logs
+```bash
+docker-compose logs -f
+```
 
-Requires local MongoDB, Redis, S3/MinIO, Node.js, and npm to be installed and running.
+### Restart Services
+```bash
+docker-compose restart backend-api backend-worker
+```
 
-1.  **Ensure Prerequisites:** Verify all dependencies (MongoDB, Redis, S3/MinIO access, Node.js, npm) are set up and running on your host.
-2.  **Configure Backend .env:** Ensure `backend/.env` is correctly configured to point to your local MongoDB, Redis, and S3/MinIO instances.
-3.  **Configure Frontend .env.local:** Ensure `frontend/.env.local` is correctly configured with the `NEXT_PUBLIC_API_BASE_URL` pointing to where your backend API is accessible on the host (e.g., `http://localhost:3000`).
-4.  **Start Backend:** Open terminals in the `backend/` directory and run:
-    ```bash
-    npm run start:api    # Terminal 1
-    npm run start:worker # Terminal 2 (run multiple times for more workers)
-    ```
-5.  **Start Frontend:** Open a terminal in the `frontend/` directory and run:
-    ```bash
-    npm run dev
-    ```
-6.  **Access:** Open your browser and go to the address shown by the frontend dev server (usually `http://localhost:3000`).
-    Refer to individual READMEs for more details on host setup and running.
+### Stop Everything
+```bash
+docker-compose down
+```
+
+## Architecture
+
+```
+Browser → Nginx (port 80) → Next.js Frontend
+                          ↓
+                    /api/* → Backend Nginx (port 8080) → Node.js API
+                                                              ↓
+                                                    MongoDB, Redis, MinIO
+```
+
+## Environment Variables
+
+Create `.env` in project root:
+```env
+S3_ACCESS_KEY_ID=minioadmin
+S3_SECRET_ACCESS_KEY=minioadmin
+S3_BUCKET_NAME=lighthouse-reports
+S3_REGION=us-east-1
+S3_SIGNED_URL_EXPIRES_SECONDS=3600
+LIGHTHOUSE_NAVIGATION_TIMEOUT=60000
+LIGHTHOUSE_THROTTLING_METHOD=simulate
+```
+
+## System Service (Production)
+
+The systemd service provides:
+- ✅ Auto-start on system boot
+- ✅ Auto-restart on failure
+- ✅ Centralized logging
+- ✅ Easy management with systemctl
+
+**Installation:**
+```bash
+# Install service
+sudo bash install-service.sh
+
+# The script will:
+# 1. Copy files to /opt/lighthouse-test
+# 2. Install systemd service
+# 3. Enable auto-start on boot
+# 4. Start the service
+```
+
+**Management:**
+```bash
+# Start/Stop/Restart
+sudo systemctl start lighthouse
+sudo systemctl stop lighthouse
+sudo systemctl restart lighthouse
+
+# Check status
+sudo systemctl status lighthouse
+
+# View logs
+sudo journalctl -u lighthouse -f
+
+# Enable/Disable auto-start
+sudo systemctl enable lighthouse
+sudo systemctl disable lighthouse
+```
+
+**Uninstall:**
+```bash
+sudo bash uninstall-service.sh
+```
+
+## Troubleshooting
+
+### Port Conflicts
+```bash
+# Windows
+netstat -ano | findstr :80
+taskkill /PID <PID> /F
+
+# Linux/Mac
+lsof -i :80
+kill -9 <PID>
+```
+
+### Clean Rebuild
+```bash
+docker-compose down -v
+docker-compose up -d --build
+```
+
+### Check Container Status
+```bash
+docker ps
+docker logs lighthouse_backend_api
+docker logs lighthouse_frontend_app
+```
+
+### Service Issues
+```bash
+# Check service status
+sudo systemctl status lighthouse
+
+# View service logs
+sudo journalctl -u lighthouse -n 50
+
+# Restart service
+sudo systemctl restart lighthouse
+
+# Reload systemd after editing service file
+sudo systemctl daemon-reload
+```
+
+## Tech Stack
+
+- **Frontend**: Next.js 15, React 19, TanStack Query, Recharts, Tailwind CSS
+- **Backend**: Node.js, Express, TypeScript, Bull (Redis queue)
+- **Testing**: Lighthouse, Puppeteer
+- **Storage**: MongoDB, Redis, MinIO (S3-compatible)
+- **Proxy**: Nginx
+
+## Project Structure
+
+```
+.
+├── backend/              # Node.js API and worker
+│   ├── src/
+│   │   ├── api/         # Express API
+│   │   ├── worker/      # Lighthouse worker
+│   │   └── config/      # Configuration
+│   └── Dockerfile
+├── frontend/            # Next.js app
+│   ├── app/            # App router pages
+│   ├── components/     # React components
+│   ├── lib/           # API client
+│   └── Dockerfile
+├── nginx/              # Nginx configs
+│   ├── backend.conf
+│   ├── frontend.conf
+│   ├── backend.Dockerfile
+│   └── frontend.Dockerfile
+└── docker-compose.yml  # Orchestration
+```
+
+## License
+
+MIT

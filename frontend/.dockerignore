@@ -1,0 +1,24 @@
+# Ignore local environment files (use docker-compose env vars instead)
+.env.local
+.env*.local
+
+# Node modules (will be installed in container)
+node_modules
+
+# Next.js build output
+.next
+
+# Development files
+.git
+.gitignore
+README.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo

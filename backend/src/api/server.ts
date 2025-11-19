@@ -1,19 +1,19 @@
 import express from 'express';
 import taskRoutes from './routes/taskRoutes';
 import config from '../config';
-import mongoose from 'mongoose'; // Import mongoose for DB connection
-import cors from 'cors'; // Import cors
+import mongoose from 'mongoose';
+import cors from 'cors';
 
 const app = express();
 
 // Middleware
-app.use(express.json()); // Parse JSON request bodies
+app.use(express.json());
 app.use(cors());
 
 // Routes
 app.use('/tasks', taskRoutes);
 
-// Basic error handling middleware
+// Error handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     console.error(err.stack);
     res.status(500).send('Something broke!');
@@ -26,20 +26,18 @@ const connectDB = async () => {
         console.log('MongoDB connected successfully.');
     } catch (err: any) {
         console.error('MongoDB connection error:', err);
-        process.exit(1); // Exit process on failure
+        process.exit(1);
     }
 };
 
-// Start server function
+// Start server
 const startServer = async () => {
-    await connectDB(); // Connect to DB before starting server
-    app.listen(config.port, () => {
+    await connectDB();
+    app.listen(config.port, "0.0.0.0", () => {
         console.log(`API Server listening on port ${config.port}`);
     });
 };
 
-// Call the start function
 startServer();
 
-// Export app for testing if needed
 export default app;
