@@ -107,3 +107,19 @@ export const getRecentTasks = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Failed to retrieve recent tasks', error: error.message });
     }
 };
+
+export const deleteTask = async (req: Request, res: Response) => {
+    try {
+        const taskId = req.params.taskId;
+        const deleted = await taskService.deleteTask(taskId);
+
+        if (!deleted) {
+            return res.status(404).json({ message: 'Task not found' });
+        }
+
+        res.status(200).json({ message: 'Task deleted successfully', taskId });
+    } catch (error: any) {
+        console.error(`Error deleting task ${req.params.taskId}:`, error);
+        res.status(500).json({ message: 'Failed to delete task', error: error.message });
+    }
+};

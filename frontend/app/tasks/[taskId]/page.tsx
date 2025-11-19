@@ -6,6 +6,7 @@ import { getTask } from '@/lib/api';
 import { FrontendTask } from '@/types';
 import { TaskDetailView } from '@/components/task-detail-view';
 import { ExportActions } from '@/components/export-actions';
+import { DeleteTaskButton } from '@/components/delete-task-button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useParams, useRouter } from 'next/navigation';
@@ -70,7 +71,10 @@ export default function TaskDetailPage() {
 						Task: {task.taskId}
 					</h1>
 				</div>
-				{task.status === 'completed' && <ExportActions task={task} />}
+				<div className="flex items-center gap-2">
+					{task.status === 'completed' && <ExportActions task={task} />}
+					<DeleteTaskButton taskId={task.taskId} />
+				</div>
 			</div>
 
 			<Card className="mb-6 sm:mb-8">

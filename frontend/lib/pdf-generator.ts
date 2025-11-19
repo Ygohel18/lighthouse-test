@@ -11,7 +11,7 @@ export async function generateProfessionalPDF(task: FrontendTask) {
   // Header
   doc.setFontSize(24);
   doc.setTextColor(37, 99, 235);
-  doc.text('Lighthouse Performance Report', pageWidth / 2, yPosition, { align: 'center' });
+  doc.text('Website Performance Report', pageWidth / 2, yPosition, { align: 'center' });
   
   yPosition += 15;
   doc.setFontSize(10);
@@ -404,7 +404,7 @@ export async function generateProfessionalPDF(task: FrontendTask) {
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
     doc.text(
-      `Page ${i} of ${totalPages} | Lighthouse Performance Report | ${task.url}`,
+      `Page ${i} of ${totalPages} | Website Performance Report | ${task.url}`,
       pageWidth / 2,
       pageHeight - 10,
       { align: 'center' }

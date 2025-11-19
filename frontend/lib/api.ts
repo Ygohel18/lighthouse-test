@@ -60,3 +60,17 @@ export const listTasks = async (): Promise<FrontendTask[]> => {
 
     return response.json();
 };
+
+export const deleteTask = async (taskId: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
+        method: 'DELETE',
+    });
+
+    if (!response.ok) {
+        if (response.status === 404) {
+            throw new Error('Task not found');
+        }
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Failed to delete task ${taskId}`);
+    }
+};

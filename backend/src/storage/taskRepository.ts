@@ -83,4 +83,10 @@ export class TaskRepository {
             }
         );
     }
+
+    // Delete a task by taskId
+    async deleteTask(taskId: string): Promise<boolean> {
+        const result = await TaskModel.deleteOne({ taskId });
+        return result.deletedCount > 0;
+    }
 }
