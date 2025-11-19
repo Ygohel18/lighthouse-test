@@ -6,56 +6,78 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Loader2 } from 'lucide-react'; // Example icon
+import {
+	Form,
+	FormControl,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from '@/components/ui/form';
+import { Loader2, Play } from 'lucide-react';
 
 const formSchema = z.object({
-    url: z.string().url({ message: "Please enter a valid URL." }),
-    // Add fields for configs if you want to allow selecting them in the form
-    // e.g., device: z.enum(['mobile', 'desktop']).optional(),
+	url: z.string().url({ message: 'Please enter a valid URL.' }),
 });
 
 interface TaskFormProps {
-    onSubmit: (url: string, configs?: any[]) => void; // Adjust configs type
-    isLoading: boolean;
+	onSubmit: (url: string, configs?: any[]) => void;
+	isLoading: boolean;
 }
 
 export function TaskForm({ onSubmit, isLoading }: TaskFormProps) {
-    const form = useForm<z.infer<typeof formSchema>>({
-        resolver: zodResolver(formSchema),
-        defaultValues: {
-            url: '',
-        },
-    });
+	const form = useForm<z.infer<typeof formSchema>>({
+		resolver: zodResolver(formSchema),
+		defaultValues: {
+			url: '',
+		},
+	});
 
-    function handleSubmit(values: z.infer<typeof formSchema>) {
-        // TODO: Get selected configs from form if implemented
-        onSubmit(values.url); // Pass URL and configs
-    }
+	function handleSubmit(values: z.infer<typeof formSchema>) {
+		onSubmit(values.url);
+	}
 
-    return (
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-                <FormField
-                    control={form.control}
-                    name="url"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>URL to Test</FormLabel>
-                            <FormControl>
-                                <Input placeholder="https://example.com" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                {/* TODO: Add form fields for selecting configurations */}
+	return (
+		<Form {...form}>
+			<form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+				<FormField
+					control={form.control}
+					name="url"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel className="text-sm sm:text-base">
+								URL to Test
+							</FormLabel>
+							<FormControl>
+								<Input
+									placeholder="https://example.com"
+									{...field}
+									className="text-sm sm:text-base"
+								/>
+							</FormControl>
+							<FormMessage className="text-xs sm:text-sm" />
+						</FormItem>
+					)}
+				/>
 
-                <Button type="submit" disabled={isLoading}>
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Run Test
-                </Button>
-            </form>
-        </Form>
-    );
+				<Button
+					type="submit"
+					disabled={isLoading}
+					className="w-full sm:w-auto"
+				>
+					{isLoading ? (
+						<>
+							<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+							Running Test...
+						</>
+					) : (
+						<>
+							<Play className="mr-2 h-4 w-4" />
+							Run Test
+						</>
+					)}
+				</Button>
+			</form>
+		</Form>
+	);
 }

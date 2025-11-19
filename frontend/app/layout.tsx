@@ -1,6 +1,8 @@
 // app/layout.tsx
-import './globals.css'; // Your global styles (Tailwind)
-import { Providers } from '@/components/providers'; // Import the Providers
+import './globals.css';
+import { Providers } from '@/components/providers';
+import { Header } from '@/components/header';
+import { Footer } from '@/components/footer';
 
 export const metadata = {
 	title: 'Lighthouse Performance Dashboard',
@@ -15,8 +17,12 @@ export default function RootLayout({
 	return (
 		<html lang="en">
 			<body>
-				<Providers> {/* Wrap children with Providers */}
-					{children}
+				<Providers>
+					<div className="relative flex min-h-screen flex-col">
+						<Header />
+						<main className="flex-1">{children}</main>
+						<Footer />
+					</div>
 				</Providers>
 			</body>
 		</html>
